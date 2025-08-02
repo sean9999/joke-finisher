@@ -1,9 +1,21 @@
 package pkg
 
+import (
+	"context"
+	"github.com/tmc/langchaingo/llms/openai"
+)
+
 // A Repertoire is a set of jokes with the ability to persist them somewhere
 type Repertoire struct {
 	Jokes map[string]*Joke
 	Store Store[string, *Joke]
+}
+
+func NewRepertoire(folder string) *Repertoire {
+	return &Repertoire{
+		Jokes: make(map[string]*Joke),
+		Store: NewFileStore(folder),
+	}
 }
 
 func (r *Repertoire) save(joke *Joke) error {
@@ -15,14 +27,14 @@ func (r *Repertoire) save(joke *Joke) error {
 	return nil
 }
 
-func (r *Repertoire) Create(setup string) (*Joke, error) {
+func (r *Repertoire) Create(ctx context.Context, setup string, llm *openai.LLM) (*Joke, error) {
 
 	// TODO: is it necessary to ask the db here? why not just check the map?
 	_, err := r.Store.Get(setup)
 	if err == nil {
 		return nil, JokeAlreadyExists
 	}
-	punchline, err := GeneratePunchLine(setup)
+	punchline, err := GeneratePunchLine(ctx, setup, llm)
 	if err != nil {
 		return nil, err
 	}

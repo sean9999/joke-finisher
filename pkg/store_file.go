@@ -4,14 +4,21 @@ import (
 	"github.com/sean9999/harebrain"
 )
 
-// *fileStore implements the [Store] interface
-var _ Store[string, *Joke] = (*fileStore)(nil)
+// *FileStore implements the [Store] interface
+var _ Store[string, *Joke] = (*FileStore)(nil)
 
-type fileStore struct {
-	harebrain.Table
+type FileStore struct {
+	*harebrain.Table
 }
 
-func (f fileStore) Get(id string) (*Joke, error) {
+func NewFileStore(folder string) *FileStore {
+	hare := harebrain.NewDatabase()
+	return &FileStore{
+		Table: hare.Table(folder),
+	}
+}
+
+func (f FileStore) Get(id string) (*Joke, error) {
 	data, err := f.Table.Get(id)
 	if err != nil {
 		return nil, err
@@ -24,11 +31,11 @@ func (f fileStore) Get(id string) (*Joke, error) {
 	return joke, nil
 }
 
-func (f fileStore) Insert(joke *Joke) error {
+func (f FileStore) Insert(joke *Joke) error {
 	return f.Table.Insert(joke)
 }
 
-func (f fileStore) GetAll() map[string]*Joke {
+func (f FileStore) GetAll() map[string]*Joke {
 	byteMap, err := f.Table.GetAll()
 	if err != nil {
 		panic(err)

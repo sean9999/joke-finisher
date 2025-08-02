@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/tmc/langchaingo/llms"
+	"github.com/sean9999/harebrain"
+	"github.com/sean9999/joke-finisher/pkg"
 	"github.com/tmc/langchaingo/llms/openai"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -17,19 +19,41 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	DoJoke(jokeSetUp)
+	DoJoke(strings.TrimSpace(jokeSetUp))
+}
+
+func CreateRepertoire() (*pkg.Repertoire, error) {
+	db := harebrain.NewDatabase()
+	err := db.Open("jokes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	rep := pkg.NewRepertoire("jokes")
+	err = rep.Load()
+	if err != nil {
+		return nil, err
+	}
+	return rep, nil
 }
 
 func DoJoke(setup string) {
+
+	rep, err := CreateRepertoire()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	ctx := context.Background()
 	llm, err := openai.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	prompt := fmt.Sprintf("Create a novel punchline for the following joke set-up: %s", setup)
-	completion, err := llms.GenerateFromSinglePrompt(ctx, llm, prompt)
+
+	joke, err := rep.Create(ctx, strings.TrimSpace(setup), llm)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(completion)
+
+	fmt.Println(joke.String())
+
 }
